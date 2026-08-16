@@ -1,0 +1,14 @@
+import Link from "next/link";
+import { AppHeader } from "@/components/app-header";
+import { deletePodcast } from "@/app/podcast/actions";
+import { requireApp } from "@/lib/auth";
+import { database } from "@/lib/database";
+import { formatInTimeZone } from "@/lib/date-time";
+
+type Job = import("mysql2").RowDataPacket & { id: number; youtube_video_id: string; title: string; status: string; operation: string; progress: number; audio_url: string | null; error_message: string | null; published_at: Date | null; created_at: Date };
+
+export default async function PodcastPage() {
+  const user = await requireApp("podcast");
+  const [jobs] = await database.execute<Job[]>("SELECT id, youtube_video_id, title, status, operation, progress, audio_url, error_message, published_at, created_at FROM podcast_jobs WHERE organization_id=? ORDER BY COALESCE(published_at, created_at) DESC", [user.organizationId]);
+  return <><AppHeader user={user}/><main><div className="page-actions"><Link className="primary-button compact" href="/podcast/new">Podcast erstellen</Link></div><header className="hero compact-hero"><p className="eyebrow">{user.organizationName}</p><h1>Podcasts</h1><p className="intro">Predigten aus abgeschlossenen YouTube-Livestreams schneiden, veröffentlichen und verwalten.</p></header><section className="broadcast-list">{jobs.length ? jobs.map(job => <article className="broadcast-row" key={job.id}><a className="broadcast-thumbnail" style={{ backgroundImage: `url(https://i.ytimg.com/vi/${job.youtube_video_id}/mqdefault.jpg)` }} href={`https://youtube.com/watch?v=${job.youtube_video_id}`} target="_blank" rel="noreferrer"/><div className="broadcast-copy"><span className={`job-status ${job.status}`}>{job.operation === "delete" ? job.status === "failed" ? `Löschen fehlgeschlagen: ${job.error_message ?? "FTP"}` : "Wird gelöscht" : job.status === "published" ? "Veröffentlicht" : job.status === "failed" ? `Fehler: ${job.error_message ?? "Verarbeitung"}` : `${job.status} · ${job.progress}%`}</span><h2>{job.title}</h2><p>{formatInTimeZone(job.published_at ?? job.created_at, user.organizationTimeZone)}</p>{job.audio_url && job.operation !== "delete" && <audio className="podcast-audio" controls preload="none" src={job.audio_url}/>}</div><div className="broadcast-actions">{job.status === "published" && job.operation !== "delete" && <Link className="small-button" href={`/podcast/episodes/${job.id}/edit`}>Bearbeiten</Link>}<form action={deletePodcast}><input type="hidden" name="jobId" value={job.id}/><button className="small-button danger" disabled={job.operation === "delete" && job.status !== "failed"}>{job.operation === "delete" && job.status === "failed" ? "Löschen wiederholen" : "Löschen"}</button></form></div></article>) : <p className="empty-state">Noch keine Podcasts erzeugt.</p>}</section></main></>;
+}

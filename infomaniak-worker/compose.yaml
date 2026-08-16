@@ -1,0 +1,14 @@
+services:
+  worker:
+    build: .
+    restart: "no"
+    environment:
+      KAHAL_API_URL: ${KAHAL_API_URL:?URL des Webtools fehlt}
+      WORKER_API_SECRET: ${WORKER_API_SECRET:?Worker-Secret fehlt}
+      WORKER_ID: ${WORKER_ID:-infomaniak-1}
+      IDLE_SHUTDOWN_SECONDS: ${IDLE_SHUTDOWN_SECONDS:-300}
+    volumes:
+      - worker-temp:/work
+
+volumes:
+  worker-temp:

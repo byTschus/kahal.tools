@@ -1,0 +1,16 @@
+[Unit]
+Description=kahal.tools podcast worker
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/kahal-worker
+ExecStart=/usr/bin/docker compose up --build --abort-on-container-exit
+ExecStopPost=/usr/bin/docker compose down
+ExecStopPost=/usr/bin/systemctl poweroff
+TimeoutStartSec=infinity
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target
