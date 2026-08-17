@@ -18,7 +18,7 @@ type IdRow = RowDataPacket & { id: number };
 type UserIdRow = IdRow & { role: "admin" | "user" };
 
 function loginError(request: NextRequest, error: string) {
-  return NextResponse.redirect(new URL(`/login?error=${error}`, request.url));
+  return NextResponse.redirect(new URL(`/login?error=${error}`, process.env.APP_URL ?? request.url));
 }
 
 export async function GET(request: NextRequest) {
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       }),
       cache: "no-store",
     });
-    if (!tokenResponse.ok) throw new Error("Token exchange failed");
+    if (!tokenResponse.ok) throw new Error(`Token exchange failed (${tokenResponse.status}): ${await tokenResponse.text()}`);
     const tokens = (await tokenResponse.json()) as { access_token: string; refresh_token?: string };
     const profileResponse = await fetch(userInfoEndpoint, {
       headers: {
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       },
       cache: "no-store",
     });
-    if (!profileResponse.ok) throw new Error("Profile request failed");
+    if (!profileResponse.ok) throw new Error(`Profile request failed (${profileResponse.status}): ${await profileResponse.text()}`);
     const profile = (await profileResponse.json()) as PlanningCenterProfile;
     if (!profile.sub || !profile.organization_id || !profile.email) throw new Error("Incomplete profile");
     let organizationTimeZone = "UTC";
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     });
 
     await createSession(userId);
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/", process.env.APP_URL ?? request.url));
   } catch (error) {
     console.error("Planning Center login failed", error);
     return loginError(request, "oauth-failed");

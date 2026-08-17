@@ -32,7 +32,7 @@ export function createOAuthState(): OAuthState & { challenge: string } {
 export function oauthConfig() {
   const clientId = process.env.PLANNING_CENTER_CLIENT_ID;
   const clientSecret = process.env.PLANNING_CENTER_CLIENT_SECRET;
-  const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+  const appUrl = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   if (!clientId || !clientSecret) {
     throw new Error("Planning Center OAuth is not configured");
   }
